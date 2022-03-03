@@ -31,18 +31,18 @@ data <- read_csv(choose.files())
 # order
 order_freq <- data %>%
     # take out duplicates due to drone type
-    group_by(Reference, Species) %>%
+    group_by(reference, species) %>%
     slice(1) %>%
     # count occurences by order
-    group_by(Order) %>%
+    group_by(order) %>%
     mutate(count = n()) %>%
     # get unique order
-    group_by(Order) %>%
+    group_by(order) %>%
     slice(1) %>%
     # filter out null values
-    filter(Order != "-", !is.na(Order))
+    filter(order != "-", !is.na(order))
 
-ggplot(order_freq, aes(x = reorder(Order, -count), y = count)) +
+ggplot(order_freq, aes(x = reorder(order, -count), y = count)) +
     theme(
         axis.text.x = element_text(
             angle = 90,
@@ -54,23 +54,27 @@ ggplot(order_freq, aes(x = reorder(Order, -count), y = count)) +
     xlab("Order") +
     ylab("Number of Studies") +
     scale_y_continuous(expand = c(0, 2))
-ggsave(file = "plots/studies-order.png", width = 10, height = 10, limitsize = FALSE)
+ggsave(
+    file = "plots/studies-order-test.png",
+    width = 10,
+    height = 10,
+    limitsize = FALSE)
 
 # family
 family_freq <- data %>%
     # take out duplicates due to drone type
-    group_by(Reference, Species) %>%
+    group_by(reference, species) %>%
     slice(1) %>%
     # count occurences by order
-    group_by(Family) %>%
+    group_by(family) %>%
     mutate(count = n()) %>%
     # get unique order
-    group_by(Family) %>%
+    group_by(family) %>%
     slice(1) %>%
     # filter out null values
-    filter(Family != "-", !is.na(Family))
+    filter(family != "-", !is.na(family))
 
-ggplot(family_freq, aes(x = reorder(Family, -count), y = count)) +
+ggplot(family_freq, aes(x = reorder(family, -count), y = count)) +
     theme(
         axis.text.x = element_text(
             angle = 90,
@@ -82,23 +86,27 @@ ggplot(family_freq, aes(x = reorder(Family, -count), y = count)) +
     xlab("Family") +
     ylab("Number of Studies") +
     scale_y_continuous(expand = c(0, 2))
-ggsave(file = "plots/studies-family.png", width = 25, height = 10, limitsize = FALSE)
+ggsave(
+    file = "plots/studies-family-test.png",
+    width = 25,
+    height = 10,
+    limitsize = FALSE)
 
 # genus
 genus_freq <- data %>%
     # take out duplicates due to drone type
-    group_by(Reference, Species) %>%
+    group_by(reference, species) %>%
     slice(1) %>%
     # count occurences by order
-    group_by(Genus) %>%
+    group_by(genus) %>%
     mutate(count = n()) %>%
     # get unique order
-    group_by(Genus) %>%
+    group_by(genus) %>%
     slice(1) %>%
     # filter out null values
-    filter(Genus != "-", !is.na(Genus))
+    filter(genus != "-", !is.na(genus))
 
-ggplot(genus_freq, aes(x = reorder(Genus, -count), y = count)) +
+ggplot(genus_freq, aes(x = reorder(genus, -count), y = count)) +
     theme(
         axis.text.x = element_text(
             angle = 90,
@@ -110,23 +118,27 @@ ggplot(genus_freq, aes(x = reorder(Genus, -count), y = count)) +
     xlab("Genus") +
     ylab("Number of Studies") +
     scale_y_continuous(expand = c(0, 2))
-ggsave(file = "plots/studies-genus.png", width = 50, height = 10, limitsize = FALSE)
+ggsave(
+    file = "plots/studies-genus-test.png",
+    width = 50,
+    height = 10,
+    limitsize = FALSE)
 
 # species
 species_freq <- data %>%
     # take out duplicates due to drone type
-    group_by(Reference, Species) %>%
+    group_by(reference, species) %>%
     slice(1) %>%
-    # count occurences by order
-    group_by(Species) %>%
+    # count occurences by species
+    group_by(species) %>%
     mutate(count = n()) %>%
-    # get unique order
-    group_by(Species) %>%
+    # get unique species
+    group_by(species) %>%
     slice(1) %>%
     # filter out null values
-    filter(Species != "-", !is.na(Species))
+    filter(species != "-", !is.na(species))
 
-ggplot(species_freq, aes(x = reorder(Species, -count), y = count)) +
+ggplot(species_freq, aes(x = reorder(common_name, -count), y = count)) +
     theme(
         axis.text.x = element_text(
             angle = 90,
@@ -138,5 +150,9 @@ ggplot(species_freq, aes(x = reorder(Species, -count), y = count)) +
     xlab("Species") +
     ylab("Number of Studies") +
     scale_y_continuous(expand = c(0, 2))
-ggsave(file = "plots/studies-species.png", width = 100, height = 10, limitsize = FALSE)
+ggsave(
+    file = "plots/studies-species-test.png",
+    width = 100,
+    height = 10,
+    limitsize = FALSE)
 
