@@ -16,9 +16,9 @@ if (length(new_packages)) {
         }
     else print(paste("This code cannot be run without", new_packages))
 }
-  
+
 # Import Packages
-library(tidyverse)
+lapply(packages, require, character.only = TRUE)
 
 # Clear Environment
 rm(list = ls())
@@ -28,115 +28,84 @@ data <- read_csv(choose.files())
 
 #### Species analysis ####
 
-# order
-order_freq <- data %>%
-    # take out duplicates due to drone type
-    group_by(Reference, Species) %>%
-    slice(1) %>%
-    # count occurences by order
-    group_by(Order) %>%
-    mutate(count = n()) %>%
-    # get unique order
-    group_by(Order) %>%
-    slice(1) %>%
-    # filter out null values
-    filter(Order != "-", !is.na(Order))
+# create a function to plot the frequency of different taxonomic ranks
+species_analysis <- function(dataset, taxo_rank) {
+    taxo_rank <- enquo(taxo_rank)
 
-ggplot(order_freq, aes(x = reorder(Order, -count), y = count)) +
-    theme(
-        axis.text.x = element_text(
-            angle = 90,
-            vjust = 0.35,
-            hjust = 0.95),
-        text = element_text(size = 40),
-        legend.position = "none") +
-    geom_col(fill = "black", width = 0.5) +
-    xlab("Order") +
-    ylab("Number of Studies") +
-    scale_y_continuous(expand = c(0, 2))
-ggsave(file = "plots/studies-order.png", width = 10, height = 10, limitsize = FALSE)
+    # manipulate dataframe to get frequency of taxonomic rank
+    taxo_freq <- dataset %>%
+        # keep only unique species for each study
+        group_by(reference, species) %>%
+        slice(1) %>%
+        # count occurences by taxonomic rank
+        group_by(!!taxo_rank) %>%
+        mutate(count = n()) %>%
+        # keep only unique taxonomic ranks
+        group_by(!!taxo_rank) %>%
+        slice(1) %>%
+        # filter out null values
+        filter(!!taxo_rank != "-", !is.na(!!taxo_rank))
+    
+    # create a plot of the frequency of taxonomic rank
+    ggplot(taxo_freq, aes(x = reorder(!!taxo_rank, -count), y = count)) +
+        theme(
+            axis.text.x = element_text(
+                angle = 90,
+                vjust = 0.35,
+                hjust = 0.95),
+            text = element_text(size = 40),
+            legend.position = "none") +
+        geom_col(fill = "black", width = 0.5) +
+        xlab(quo_name(taxo_rank)) +
+        ylab("Number of Studies") +
+        scale_y_continuous(expand = c(0, 2))
 
-# family
-family_freq <- data %>%
-    # take out duplicates due to drone type
-    group_by(Reference, Species) %>%
-    slice(1) %>%
-    # count occurences by order
-    group_by(Family) %>%
-    mutate(count = n()) %>%
-    # get unique order
-    group_by(Family) %>%
-    slice(1) %>%
-    # filter out null values
-    filter(Family != "-", !is.na(Family))
+    # save the plot
+    ggsave(
+        file = paste0("plots/", quo_name(taxo_rank), "-freq.png"),
+        width = nrow(taxo_freq) * 2,
+        height = 10,
+        limitsize = FALSE)
+    return(taxo_freq)
+}
 
-ggplot(family_freq, aes(x = reorder(Family, -count), y = count)) +
-    theme(
-        axis.text.x = element_text(
-            angle = 90,
-            vjust = 0.35,
-            hjust = 0.95),
-        text = element_text(size = 40),
-        legend.position = "none") +
-    geom_col(fill = "black", width = 0.5) +
-    xlab("Family") +
-    ylab("Number of Studies") +
-    scale_y_continuous(expand = c(0, 2))
-ggsave(file = "plots/studies-family.png", width = 25, height = 10, limitsize = FALSE)
+order_freq <- species_analysis(data, order)
+family_freq <- species_analysis(data, family)
+species_freq <- species_analysis(data, species)
 
-# genus
-genus_freq <- data %>%
-    # take out duplicates due to drone type
-    group_by(Reference, Species) %>%
-    slice(1) %>%
-    # count occurences by order
-    group_by(Genus) %>%
-    mutate(count = n()) %>%
-    # get unique order
-    group_by(Genus) %>%
-    slice(1) %>%
-    # filter out null values
-    filter(Genus != "-", !is.na(Genus))
+#### drone analysis ####
 
-ggplot(genus_freq, aes(x = reorder(Genus, -count), y = count)) +
-    theme(
-        axis.text.x = element_text(
-            angle = 90,
-            vjust = 0.35,
-            hjust = 0.95),
-        text = element_text(size = 40),
-        legend.position = "none") +
-    geom_col(fill = "black", width = 0.5) +
-    xlab("Genus") +
-    ylab("Number of Studies") +
-    scale_y_continuous(expand = c(0, 2))
-ggsave(file = "plots/studies-genus.png", width = 50, height = 10, limitsize = FALSE)
+#### approach analysis ####
 
-# species
-species_freq <- data %>%
-    # take out duplicates due to drone type
-    group_by(Reference, Species) %>%
-    slice(1) %>%
-    # count occurences by order
-    group_by(Species) %>%
-    mutate(count = n()) %>%
-    # get unique order
-    group_by(Species) %>%
-    slice(1) %>%
-    # filter out null values
-    filter(Species != "-", !is.na(Species))
+#### location analysis ####
 
-ggplot(species_freq, aes(x = reorder(Species, -count), y = count)) +
-    theme(
-        axis.text.x = element_text(
-            angle = 90,
-            vjust = 0.35,
-            hjust = 0.95),
-        text = element_text(size = 40),
-        legend.position = "none") +
-    geom_col(fill = "black", width = 0.5) +
-    xlab("Species") +
-    ylab("Number of Studies") +
-    scale_y_continuous(expand = c(0, 2))
-ggsave(file = "plots/studies-species.png", width = 100, height = 10, limitsize = FALSE)
+# manipulate data to get unique gps locations
+gps_data <- data %>%
+    mutate(latitude_centre = (latitude_min + latitude_max) / 2, .after = longitude_max) %>%
+    mutate(longitude_centre = (longitude_min + longitude_max) / 2, .after = longitude_max) %>%
+    group_by(reference, location) %>%
+    slice(1)
 
+# get world map data
+world <- map_data("world")
+
+# plot world map and survey points
+ggplot() +
+    geom_map(
+        data = world, map = world,
+        aes(long, lat, map_id = region),
+        color = "black", fill = "lightgray", size = 0.1) +
+    geom_point(
+        data = gps_data,
+        aes(longitude_centre, latitude_centre),
+        colour = "red",
+        alpha = 0.7)
+
+# save plot
+ggsave(
+    file = "plots/study-sites.png",
+    width = 20,
+    height = 20,
+    limitsize = FALSE)
+
+#### create guidelines ####
