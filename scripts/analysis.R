@@ -26,7 +26,37 @@ rm(list = ls())
 # Import Data
 data <- read_csv(choose.files())
 
-#### Species analysis ####
+#### General Functions ####
+
+histogram <- function(dataset, x_axis, y_axis) {
+    x_axis <- enquo(x_axis)
+    y_axis <- enquo(y_axis)
+
+    # create a plot of the frequency of taxonomic rank
+    ggplot(dataset, aes(x = reorder(!!x_axis, -!!y_axis), y = !!y_axis)) +
+        theme(
+            axis.text.x = element_text(
+                angle = 90,
+                vjust = 0.35,
+                hjust = 0.95),
+            text = element_text(size = 40),
+            legend.position = "none") +
+        geom_col(fill = "black", width = 0.5) +
+        xlab(quo_name(x_axis)) +
+        ylab("Number of Studies") +
+        scale_y_continuous(expand = c(0, 2))
+
+    # save the plot
+    ggsave(
+        file = paste0("plots/", quo_name(x_axis), ".png"),
+        width = nrow(dataset) * 2,
+        height = 10,
+        limitsize = FALSE)
+}
+
+#### Target Analysis ####
+
+# taxonomic rank frequency
 
 # create a function to plot the frequency of different taxonomic ranks
 species_analysis <- function(dataset, taxo_rank) {
@@ -46,32 +76,33 @@ species_analysis <- function(dataset, taxo_rank) {
         # filter out null values
         filter(!!taxo_rank != "-", !is.na(!!taxo_rank))
     
-    # create a plot of the frequency of taxonomic rank
-    ggplot(taxo_freq, aes(x = reorder(!!taxo_rank, -count), y = count)) +
-        theme(
-            axis.text.x = element_text(
-                angle = 90,
-                vjust = 0.35,
-                hjust = 0.95),
-            text = element_text(size = 40),
-            legend.position = "none") +
-        geom_col(fill = "black", width = 0.5) +
-        xlab(quo_name(taxo_rank)) +
-        ylab("Number of Studies") +
-        scale_y_continuous(expand = c(0, 2))
+    # create histogram of results
+    histogram(taxo_freq, !!taxo_rank, count)
 
-    # save the plot
-    ggsave(
-        file = paste0("plots/", quo_name(taxo_rank), "-freq.png"),
-        width = nrow(taxo_freq) * 2,
-        height = 10,
-        limitsize = FALSE)
     return(taxo_freq)
 }
 
 order_freq <- species_analysis(data, order)
 family_freq <- species_analysis(data, family)
 species_freq <- species_analysis(data, species)
+
+# average abundance per approach per species
+# note: not per drone or approachtype or lifestage or study
+
+# manipulate dataframe to get abundance per approach per species
+count_approach <- data %>%
+    # keep only unique species for each study
+    group_by(reference, species) %>%
+    slice(1) %>%
+    # get average count per species per approach over all studies
+    group_by(species, common_name) %>%
+    summarize(count_target_avg = mean(count_target_average, na.rm=TRUE)) %>%
+    # drop bad values
+    filter(species != "-", !is.na(species)) %>%
+    drop_na()
+
+# create a plot of the abundance per approach per species
+histogram(count_approach, common_name, count_target_avg)
 
 #### drone analysis ####
 
