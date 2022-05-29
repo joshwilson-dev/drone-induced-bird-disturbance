@@ -1,9 +1,14 @@
+################
 #### Header ####
+################
+
 # Literature Review Analysis
 # Josh Wilson
 # 25-02-2022
 
+###############
 #### Setup ####
+###############
 # Install Packages
 packages <- c("tidyverse")
 new_packages <- packages[!(packages %in% installed.packages()[, "Package"])]
@@ -26,14 +31,16 @@ rm(list = ls())
 # Import Data
 data <- read_csv(choose.files())
 
+###########################
 #### General Functions ####
+###########################
 
-histogram <- function(dataset, x_axis, y_axis) {
-    x_axis <- enquo(x_axis)
-    y_axis <- enquo(y_axis)
+histogram <- function(dataset, group, freq) {
+    group <- enquo(group)
+    freq <- enquo(freq)
 
     # create a plot of the frequency of taxonomic rank
-    ggplot(dataset, aes(x = reorder(!!x_axis, -!!y_axis), y = !!y_axis)) +
+    ggplot(dataset, aes(x = reorder(!!group, -!!freq), y = !!freq)) +
         theme(
             axis.text.x = element_text(
                 angle = 90,
@@ -42,46 +49,47 @@ histogram <- function(dataset, x_axis, y_axis) {
             text = element_text(size = 40),
             legend.position = "none") +
         geom_col(fill = "black", width = 0.5) +
-        xlab(quo_name(x_axis)) +
+        xlab(quo_name(group)) +
         ylab("Number of Studies") +
         scale_y_continuous(expand = c(0, 2))
 
     # save the plot
     ggsave(
-        file = paste0("plots/", quo_name(x_axis), ".png"),
+        file = paste0("plots/", quo_name(group), ".png"),
         width = nrow(dataset) * 2,
         height = 10,
         limitsize = FALSE)
 }
 
-#### Target Analysis ####
+# create a function to plot the frequency of categories within specified group
+histogram_analysis <- function(dataset, group) {
+    group <- enquo(group)
 
-# taxonomic rank frequency
-
-# create a function to plot the frequency of different taxonomic ranks
-species_analysis <- function(dataset, taxo_rank) {
-    taxo_rank <- enquo(taxo_rank)
-
-    # manipulate dataframe to get frequency of taxonomic rank
-    taxo_freq <- dataset %>%
+    # manipulate dataframe to get frequency of categories within specified group
+    freq <- dataset %>%
         # keep only unique species for each study
         group_by(reference, species) %>%
         slice(1) %>%
         # count occurences by taxonomic rank
-        group_by(!!taxo_rank) %>%
+        group_by(!!group) %>%
         mutate(count = n()) %>%
         # keep only unique taxonomic ranks
-        group_by(!!taxo_rank) %>%
+        group_by(!!group) %>%
         slice(1) %>%
         # filter out null values
-        filter(!!taxo_rank != "-", !is.na(!!taxo_rank))
-    
-    # create histogram of results
-    histogram(taxo_freq, !!taxo_rank, count)
+        filter(!!group != "-", !is.na(!!group))
 
-    return(taxo_freq)
+    # create histogram of results
+    histogram(freq, !!group, count)
+
+    return(freq)
 }
 
+#########################
+#### Target Analysis ####
+#########################
+
+# taxonomic rank frequency
 order_freq <- species_analysis(data, order)
 family_freq <- species_analysis(data, family)
 species_freq <- species_analysis(data, species)
@@ -96,7 +104,7 @@ count_approach <- data %>%
     slice(1) %>%
     # get average count per species per approach over all studies
     group_by(species, common_name) %>%
-    summarize(count_target_avg = mean(count_target_average, na.rm=TRUE)) %>%
+    summarize(count_target_avg = mean(count_target_average, na.rm = TRUE)) %>%
     # drop bad values
     filter(species != "-", !is.na(species)) %>%
     drop_na()
@@ -104,11 +112,22 @@ count_approach <- data %>%
 # create a plot of the abundance per approach per species
 histogram(count_approach, common_name, count_target_avg)
 
+########################
 #### drone analysis ####
+########################
 
+# drone_analysis <- data %>%
+# could group into phantom, or drone size...
+
+order_freq <- species_analysis(data, drone)
+
+###########################
 #### approach analysis ####
+###########################
 
+###########################
 #### location analysis ####
+###########################
 
 # manipulate data to get unique gps locations
 gps_data <- data %>%
@@ -139,4 +158,6 @@ ggsave(
     height = 20,
     limitsize = FALSE)
 
+###########################
 #### create guidelines ####
+###########################
